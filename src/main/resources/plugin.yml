@@ -1,0 +1,32 @@
+name: FuckCn2b2t
+description: '新玩家聊天行为管制、反广告刷屏插件'
+prefix: FuckCn2b2t
+version: '${version}'
+
+main: com.windsor.fuckCn2b2t.FuckCn2b2t
+api-version: '1.21.3'
+load: POSTWORLD
+
+authors: [ Windsor_Macmillan ]
+folia-supported: true
+softdepend:
+  - PlaceholderAPI
+
+commands:
+  fkcn2b2t:
+    description: FuckCn2b2t 主命令
+    usage: /fkcn2b2t <mute|unmute|stat|reload> [args]
+  shadowban:
+    description: 手动使玩家进入隐形禁言（平替 /fkcn2b2t mute）
+    usage: /shadowban <玩家名> <分钟>
+  newplayerstat:
+    description: 查看玩家的新玩家状态和活跃数据（平替 /fkcn2b2t stat）
+    usage: /newplayerstat [玩家名]
+
+permissions:
+  fuckcn2b2t.reload:
+    description: 允许重载配置
+    default: op
+  fuckcn2b2t.bypass:
+    description: 跳过新玩家判定，永久视为老玩家（调试模式仍会覆盖）
+    default: op

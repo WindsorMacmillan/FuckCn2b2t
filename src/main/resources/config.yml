@@ -1,0 +1,166 @@
+# ============================================================
+# FuckCn2b2t 插件配置文件 —— 去你妈的cn2b2t广告，准备放飞刷屏狗的马！
+# ============================================================
+# 一、新玩家聊天检查功能类
+# ============================================================
+new-player-chat-check:
+  # 功能总开关
+  enabled: true
+
+  # 超长消息检测，如果新玩家发送的消息（剔除掉所有颜色格式的纯文本）字符数量超出限制，则视为违规并拦截
+  # 默认值30，这个长度的消息对于绝大多数聊天够用
+  long-message:
+    enabled: true
+    max-length: 30
+
+  # 是否兼容InteractiveChat（移除聊天组件标记），以防消息超长被插件误判
+  # InteractiveChat插件会在玩家使用聊天组件（如：@其他玩家、[item]、[pos]等）时加入标识符造成消息过长
+  interactive-chat-compat:
+    enabled: true
+    strip-pattern: "<chat=[^>]+>"
+
+  # 链接检测，如果新玩家发送的消息（剔除掉所有url无效字符）包含链接，则视为违规并拦截
+  link-detection:
+    enabled: true
+    # URL 匹配正则（净化后的文本使用）
+    pattern: "(?i)(?:https?://|ftp://|www\\.)[a-zA-Z0-9\\-.]+\\.(?:[a-zA-Z]{2,}(?:/\\S*)?)|(?i)(?:[a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,}(?:/\\S*)?"
+    # 合法 URL 字符（用于净化，移除所有非法字符后检测）
+    # 可以防止玩家在链接之间插入无意义字符来规避检测（如：b哈a哈i d～u .～c哈o哈m，会被识别到链接baidu.com）
+    valid-url-chars: "[^a-zA-Z0-9.\\-/:?&=#]"
+    # 域名+端口号检测（匹配 "域名:端口" 或 "域名：端口"，支持中英文冒号，例如 mc.server.com:25565）
+    domain-port-pattern: "[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+\\s*[:：]\\s*\\d+"
+
+  # 频繁消息检测
+  spam-detection:
+    enabled: true
+    # 玩家发言计数窗口时长
+    time-window-seconds: 15
+    # 如果玩家在窗口时长内发言消息次数超过此数量，则视为违规并拦截
+    max-messages: 3
+
+  # 过多数字检测，如果玩家的消息中数字累积数量超过此限制，则视为违规并拦截
+  # 不要求数字连续，只看消息中出现的数字总数量。此检查用于防范恶俗小鬼开盒发送手机号身份证等，有一定误判性，按需开启
+  excessive-digits:
+    enabled: true
+    # 数字字符数量上限
+    max-digit-count: 9
+
+# ============================================================
+# 二、聊天违规处置措施类
+# ============================================================
+violation-penalties:
+  # 功能总开关
+  enabled: true
+
+  # 违规发言是否抄送给 OP（插件默认抄送给控制台，启用时抄送给所有在线的OP）
+  notify-op: true
+
+  # 仅自己可见模式，如果启用则取消事件并向发送者发一条格式化的假消息，造成该消息仅自己可见
+  # 如果禁用则直接取消，所有人不可见（会被消息发送者注意到无法发送消息）
+  silent-mode: true
+
+  # 仅自己可见时发送给玩家的聊天格式（支持 PlaceholderAPI 占位符，{player} 和 {message} 会被替换）
+  # 重要！消息格式化应该和你的聊天插件格式保持一致，否则可能会被发送者发现该消息仅自己可见！
+  silent-chat-format: "&f[%tab_placeholder_condition:posname%&f]%tab_replace_playerTitle_use%&r<gradient:%tab_placeholder_condition:titlecolor%%tab_placeholder_condition:postype%>{player}&f: {message}"
+
+  # 禁言配置
+  mute:
+    # 违规多少次后触发禁言（0=始终不禁言）
+    threshold-points: 5
+    # 基础禁言时长（分钟），当玩家因为违规发言进入禁言时的初始时长
+    base-duration-minutes: 5
+    # 禁言期间每次违规额外增加的禁言时长（分钟）
+    additional-duration-minutes: 1
+
+  # 警告消息（达到特定违规次数倍数时发送）
+  warning:
+    # 每违规发言多少次时发送此警告信息
+    # 如果你不想被违规发言者试探出检查的规则，建议将此警告信息写的笼统而模糊。
+    points-multiple: 10
+    message: "&f[&4聊天&f] &c你聊天管制期内违规行为较多，如违规严重会导致踢出或封禁。"
+  # 踢出
+  kick:
+    # 达到此违规次数时踢出玩家
+    points: 41
+    # 如果你不想被违规发言者试探出检查的规则，建议将此警告信息写的笼统而模糊。
+    message: "&c严管期内聊天频繁违规，继续违规会导致封禁！"
+  # 封禁
+  ban:
+    # 达到此违规次数时封禁玩家
+    points: 61
+    message: "&c严管期内聊天严重违规，详情请联系腐竹"
+
+  # 禁言期间其他行为拦截
+  intercept:
+    # 玩家试图用命令私聊其他玩家时拦截并将内容抄送管理员，防止玩家禁言期间通过私聊交流
+    private-message: true
+    # 私聊命令（可在此列表添加其他插件提供的私聊命令）
+    private-message-commands:
+      - tell
+      - msg
+      - w
+      - message
+      - whisper
+      - m
+    # 玩家试图在告示牌上写字时拦截并将内容抄送管理员，防止玩家禁言期间通过告示牌交流
+    sign: true
+    # 玩家试图用铁砧重命名时拦截并将内容抄送管理员，防止玩家禁言期间通过命名物品交流
+    anvil: true
+    # 玩家试图用书与笔写书时拦截并将内容抄送管理员，防止玩家禁言期间通过书与笔交流
+    book: true
+
+# ============================================================
+# 三、新玩家判定规则类
+# ============================================================
+new-player-detection:
+  # 玩家活跃度积分判定（建议启用，防止玩家通过挂机或消极游戏混时长熬过严管期）
+  active-score:
+    # 是否启用活跃度积分判定（false 则使用在线时长判定）
+    enabled: true
+    # 活跃度积分阈值（达到此值后即不再被视为新玩家，可以自由发言）
+    threshold: 30000.0
+    # 统计项及其权重（占位符不含%，通过PlaceholderAPI读取，支持拓展更多玩家统计数据）
+    # 详见 https://wiki.placeholderapi.com/users/placeholder-list/minecraft/#statistic
+    statistics:
+      - stat: statistic_mob_kills
+        weight: 1.0
+      - stat: statistic_mine_block
+        weight: 0.5
+      - stat: statistic_use_item
+        weight: 0.2
+      - stat: statistic_break_item
+        weight: 10.0
+      - stat: statistic_craft_item
+        weight: 0.2
+      - stat: statistic_damage_dealt
+        weight: 0.2
+      - stat: statistic_damage_taken
+        weight: 0.5
+      - stat: statistic_deaths
+        weight: 10.0
+      - stat: statistic_item_enchanted
+        weight: 10.0
+      - stat: statistic_fish_caught
+        weight: 5.0
+      - stat: statistic_traded_with_villager
+        weight: 1.0
+  # 在线时长判定（回退模式，活跃度判定未启用时使用）
+  playtime:
+    # 在线时长阈值（秒），默认 24 小时（86400秒）
+    threshold-seconds: 86400
+# ============================================================
+# 四、新玩家提醒
+# ============================================================
+new-player-reminder:
+  # 新玩家登录时是否发送聊天管制提醒
+  login-message: true
+  # 新玩家游玩中是否定时发送提醒
+  periodic-reminder:
+    enabled: true
+    # 发送周期（tick，20 ticks = 1 秒），默认 15 分钟（18000 ticks）
+    interval-ticks: 18000
+  # 聊天管制提醒内容（支持 PlaceholderAPI 占位符和 & 颜色代码）
+  message: "&f[&4聊天&f] &c新玩家有一段时间的严管聊天行为，&4期间不允许频繁发送消息、发送长消息、发送链接。&d正常游玩即可结束聊天严管。"
+
+# 调试模式：true 时所有玩家都会被视为新玩家（用于测试）
+debug-mode: false
