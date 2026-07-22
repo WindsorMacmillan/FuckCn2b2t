@@ -35,6 +35,12 @@ FuckCn2b2t 是一个 Paper/Folia 服务端插件，专门解决离线服务器�
 - **禁言期间其他拦截**：玩家禁言期间私聊命令、告示牌、铁砧重命名、书与笔均会被静默拦截，并将内容抄送给管理员。
 - **警告/踢出/封禁**：各级处罚的阈值和消息完全可配置
 
+<img width="1909" height="1037" alt="发言管制1" src="https://github.com/user-attachments/assets/b7686c3d-cb51-4f8b-831d-348387db1afe" />
+<img width="1912" height="1031" alt="发言管制2" src="https://github.com/user-attachments/assets/e7bc46f8-8369-4ada-bb01-89f254fe9f9c" />
+<img width="1919" height="1029" alt="发言管制3" src="https://github.com/user-attachments/assets/f6856205-32d6-4eef-a478-3686c465432d" />
+<img width="1919" height="1035" alt="发言管制4" src="https://github.com/user-attachments/assets/0693d1c2-9d4a-46f3-aebd-e5eb3917c4b3" />
+
+
 ### **插件兼容性**
 
 - ✅ **Paper / Folia** — 兼容（需要服务端版本 1.21.3+，使用了高版本铁砧相关API）
