@@ -13,11 +13,14 @@ new-player-chat-check:
     enabled: true
     max-length: 30
 
-  # 是否兼容InteractiveChat（移除聊天组件标记），以防消息超长被插件误判
+  # 是否兼容InteractiveChat插件（移除聊天组件标记），以防消息超长被插件误判
   # InteractiveChat插件会在玩家使用聊天组件（如：@其他玩家、[item]、[pos]等）时加入标识符造成消息过长
   interactive-chat-compat:
     enabled: true
     strip-pattern: "<chat=[^>]+>"
+  # 是否兼容SweetMeow插件（在消息末尾智能添加"喵"），配合风格化聊天使用
+  sweetmeow-compat:
+    enabled: false
 
   # 链接检测，如果新玩家发送的消息（剔除掉所有url无效字符）包含链接，则视为违规并拦截
   link-detection:

@@ -217,7 +217,7 @@ public class ChatListener implements Listener {
     // ==================================================================
 
     private void sendFormattedMessageToPlayer(Player player, String messageContent) {
-        String modifiedContent = appendMeow(messageContent);
+        String modifiedContent = config.isSweetMeowCompatEnabled() ? appendMeow(messageContent) : messageContent;
         String format = config.getSilentChatFormat()
                 .replace("{player}", player.getName())
                 .replace("{message}", modifiedContent);
