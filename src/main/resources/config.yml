@@ -48,6 +48,15 @@ new-player-chat-check:
     # 数字字符数量上限
     max-digit-count: 9
 
+  # 直接违规关键字检测，如果玩家的消息中直接出现了列表中的任何关键字，则视为违规并拦截
+  # 此检查在所有其他检查之前运行，适用于需要绝对禁止的关键字，不分大小写
+  keyword-filter:
+    enabled: false
+    keywords:
+      - "cn2b2t"
+      - "xemc"
+      - "xecraft"
+
 # ============================================================
 # 二、聊天违规处置措施类
 # ============================================================
@@ -64,7 +73,7 @@ violation-penalties:
 
   # 仅自己可见时发送给玩家的聊天格式（支持 PlaceholderAPI 占位符，{player} 和 {message} 会被替换）
   # 重要！消息格式化应该和你的聊天插件格式保持一致，否则可能会被发送者发现该消息仅自己可见！
-  silent-chat-format: "&f[%tab_placeholder_condition:posname%&f]%tab_replace_playerTitle_use%&r<gradient:%tab_placeholder_condition:titlecolor%%tab_placeholder_condition:postype%>{player}&f: {message}"
+  silent-chat-format: "&f{player}&f: {message}"
 
   # 禁言配置
   mute:

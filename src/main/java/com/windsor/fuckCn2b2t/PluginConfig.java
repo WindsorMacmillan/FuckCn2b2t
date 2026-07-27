@@ -24,6 +24,9 @@ public class PluginConfig {
     // ========== 一、新玩家聊天检查功能类 ==========
     private boolean chatCheckEnabled;
 
+    private boolean directKeywordsEnabled;
+    private List<String> directKeywords;
+
     private boolean longMessageEnabled;
     private int maxMessageLength;
 
@@ -43,6 +46,9 @@ public class PluginConfig {
 
     private boolean excessiveDigitsEnabled;
     private int excessiveDigitCount;
+
+    private boolean keywordFilterEnabled;
+    private java.util.List<String> keywordFilterKeywords;
 
     // ========== 二、聊天违规处置措施类 ==========
     private boolean penaltiesEnabled;
@@ -104,6 +110,12 @@ public class PluginConfig {
         ConfigurationSection chatCheck = getSection(cfg, "new-player-chat-check");
         chatCheckEnabled = chatCheck.getBoolean("enabled", true);
 
+        ConfigurationSection directKeywordsSection = getSection(chatCheck, "direct-keywords");
+        directKeywordsEnabled = directKeywordsSection.getBoolean("enabled", true);
+        directKeywords = directKeywordsSection.getStringList("keywords").stream()
+                .filter(keyword -> keyword != null && !keyword.isEmpty())
+                .toList();
+
         ConfigurationSection longMsg = getSection(chatCheck, "long-message");
         longMessageEnabled = longMsg.getBoolean("enabled", true);
         maxMessageLength = longMsg.getInt("max-length", 40);
@@ -131,6 +143,13 @@ public class PluginConfig {
         ConfigurationSection digits = getSection(chatCheck, "excessive-digits");
         excessiveDigitsEnabled = digits.getBoolean("enabled", true);
         excessiveDigitCount = digits.getInt("max-digit-count", 9);
+
+        ConfigurationSection kw = getSection(chatCheck, "keyword-filter");
+        keywordFilterEnabled = kw.getBoolean("enabled", false);
+        keywordFilterKeywords = kw.getStringList("keywords");
+        if (keywordFilterKeywords == null) {
+            keywordFilterKeywords = java.util.List.of();
+        }
 
         // ========== 二、聊天违规处置措施类 ==========
         ConfigurationSection penalties = getSection(cfg, "violation-penalties");
@@ -241,6 +260,14 @@ public class PluginConfig {
         return chatCheckEnabled;
     }
 
+    public boolean isDirectKeywordsEnabled() {
+        return directKeywordsEnabled;
+    }
+
+    public List<String> getDirectKeywords() {
+        return directKeywords;
+    }
+
     public boolean isLongMessageEnabled() {
         return longMessageEnabled;
     }
@@ -295,6 +322,14 @@ public class PluginConfig {
 
     public int getExcessiveDigitCount() {
         return excessiveDigitCount;
+    }
+
+    public boolean isKeywordFilterEnabled() {
+        return keywordFilterEnabled;
+    }
+
+    public java.util.List<String> getKeywordFilterKeywords() {
+        return keywordFilterKeywords;
     }
 
     // ========== 二、聊天违规处置措施类 ==========

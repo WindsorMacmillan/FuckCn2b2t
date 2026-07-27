@@ -11,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
+import java.text.Normalizer;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Queue;
@@ -30,11 +31,45 @@ public class ChatListener implements Listener {
 
     // 匹配传统颜色代码 &a, &l, &#RRGGBB 等（不变，纯工具性）
     private static final Pattern LEGACY_COLOR_PATTERN = Pattern.compile("&([0-9a-fk-or]|#[0-9a-fA-F]{6})");
+    private static final int Z0 = 0x5A5A;
+    private static final int[][] Z1 = {
+            {0x0655, 0x3F22, 0xC484},
+            {0x0655, 0x3F2A, 0x2AE3},
+            {0x09BF, 0xDC05},
+            {0x09BF, 0x09AD},
+            {0x09BF, 0xC484},
+            {0x09BF, 0x2AE3},
+            {0x0D49, 0xC484},
+            {0x0D5C, 0x2AE3},
+            {0x1477, 0xC484},
+            {0x1477, 0x2AE3},
+            {0xC249, 0xDC05},
+            {0xC225, 0x09AD},
+            {0xC484, 0x0B08},
+            {0x2AE3, 0x0B65},
+            {0xC484},
+            {0x2AE3}
+    };
+    private static final Pattern Z2 = Pattern.compile(z3());
+    private static final Pattern Z4 = Pattern.compile("\\.{2,}");
 
     public ChatListener(NewPlayerManager newPlayerManager, ViolationManager violationManager, PluginConfig config) {
         this.newPlayerManager = newPlayerManager;
         this.violationManager = violationManager;
         this.config = config;
+    }
+
+    private static String z3() {
+        StringBuilder z5 = new StringBuilder();
+        for (int z6 = 0; z6 < Z1.length; z6++) {
+            if (z6 > 0) {
+                z5.append('|');
+            }
+            for (int z7 : Z1[z6]) {
+                z5.appendCodePoint(z7 ^ Z0);
+            }
+        }
+        return z5.toString();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -129,13 +164,16 @@ public class ChatListener implements Listener {
      * 用于新玩家（含频率检测）
      */
     private String getViolationReason(String plainMessage, Player player) {
+        if (config.isKeywordFilterEnabled() && containsKeyword(plainMessage)) {
+            return "包含违规关键字";
+        }
         if (config.isLongMessageEnabled() && plainMessage.length() > config.getMaxMessageLength()) {
             return "发送超长消息";
         }
         if (config.isSpamDetectionEnabled() && isSpamming(player)) {
             return "频繁发送消息";
         }
-        if (config.isLinkDetectionEnabled() && containsUrl(plainMessage)) {
+        if (config.isLinkDetectionEnabled() && z8(plainMessage)) {
             return "发送链接";
         }
         if (config.isExcessiveDigitsEnabled() && containsExcessiveDigits(plainMessage)) {
@@ -148,10 +186,13 @@ public class ChatListener implements Listener {
      * 获取违规原因（禁言版本，忽略频率）
      */
     private String getViolationReasonForMuted(String plainMessage) {
+        if (config.isKeywordFilterEnabled() && containsKeyword(plainMessage)) {
+            return "包含违规关键字";
+        }
         if (config.isLongMessageEnabled() && plainMessage.length() > config.getMaxMessageLength()) {
             return "发送超长消息";
         }
-        if (config.isLinkDetectionEnabled() && containsUrl(plainMessage)) {
+        if (config.isLinkDetectionEnabled() && z8(plainMessage)) {
             return "发送链接";
         }
         if (config.isExcessiveDigitsEnabled() && containsExcessiveDigits(plainMessage)) {
@@ -284,18 +325,63 @@ public class ChatListener implements Listener {
         return timestamps.size() >= config.getSpamMaxMessages();
     }
 
-    private boolean containsUrl(String text) {
-        if (text == null || text.isEmpty()) return false;
+    private boolean z8(String z9) {
+        if (z9 == null || z9.isEmpty()) return false;
 
-        // 域名+端口号检测（匹配 "domain:port" 或 "domain：port"）
-        if (config.getDomainPortPattern().matcher(text).find()) {
+        String za = zb(z9);
+
+        if (config.getDomainPortPattern().matcher(za).find()) {
             return true;
         }
 
-        // 净化后匹配标准 URL
-        String sanitized = config.getValidUrlChars().matcher(text).replaceAll("");
-        if (sanitized.length() < 5) return false;
-        return config.getUrlPattern().matcher(sanitized).find();
+        String zc = config.getValidUrlChars().matcher(za).replaceAll("");
+        if (zc.length() < 5) return false;
+        return config.getUrlPattern().matcher(zc).find();
+    }
+
+    private String zb(String zd) {
+        String ze = Normalizer.normalize(zd, Normalizer.Form.NFKC);
+        ze = Z2.matcher(ze).replaceAll(".");
+
+        StringBuilder zf = new StringBuilder(ze.length());
+        for (int z10 = 0; z10 < ze.length(); ) {
+            int z11 = ze.codePointAt(z10);
+            zf.appendCodePoint(z12(z11) ? '.' : z11);
+            z10 += Character.charCount(z11);
+        }
+        return Z4.matcher(zf).replaceAll(".");
+    }
+
+    private boolean z12(int z13) {
+        return switch (z13) {
+            case '.',
+                    // CJK/common full-stop variants and separators.
+                    0x3002, 0xFF61, 0xFF0E, 0xFE52, 0xFE12, 0x30FB, 0xFF65,
+                    0x4E36, 0x3001, 0xFF64, 0xFE51,
+                    // Unicode confusables that map to full stop or repeated full stops.
+                    0x2024, 0x2025, 0x2026, 0x0701, 0x0702, 0xA60E, 0x10A50,
+                    0xA4F8, 0xA4FA, 0xA4FB, 0x1D16D,
+                    // Other full-stop punctuation used in non-Latin scripts.
+                    0x06D4, 0x1362, 0x166E, 0x1803, 0x1809,
+                    // Middle-dot, bullet, dot-operator and small round punctuation often used as separators.
+                    0x00B7, 0x0387, 0x16EB, 0x2E31, 0x10101, 0x2022, 0x2027,
+                    0x2219, 0x22C5, 0x25CF, 0x25E6, 0x2981, 0x2E30, 0xFE45, 0xFE46,
+                    // Ring-like dot substitutions that are visually close in chat fonts.
+                    0x00B0, 0x02DA, 0x2218, 0x25CB, 0x25C9, 0x25CC, 0x25D8,
+                    0x25D9, 0x26AC -> true;
+            default -> false;
+        };
+    }
+
+    private boolean containsKeyword(String text) {
+        if (text == null || text.isEmpty()) return false;
+        String lower = text.toLowerCase();
+        for (String keyword : config.getKeywordFilterKeywords()) {
+            if (lower.contains(keyword.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean containsExcessiveDigits(String text) {
