@@ -50,6 +50,9 @@ public class PluginConfig {
     private boolean keywordFilterEnabled;
     private java.util.List<String> keywordFilterKeywords;
 
+    private boolean rareCharCheckEnabled;
+    private int maxRareCharCount;
+
     // ========== 二、聊天违规处置措施类 ==========
     private boolean penaltiesEnabled;
     private boolean notifyOp;
@@ -150,6 +153,10 @@ public class PluginConfig {
         if (keywordFilterKeywords == null) {
             keywordFilterKeywords = java.util.List.of();
         }
+
+        ConfigurationSection rare = getSection(chatCheck, "rare-char-check");
+        rareCharCheckEnabled = rare.getBoolean("enabled", true);
+        maxRareCharCount = rare.getInt("max-rare-count", 5);
 
         // ========== 二、聊天违规处置措施类 ==========
         ConfigurationSection penalties = getSection(cfg, "violation-penalties");
@@ -330,6 +337,14 @@ public class PluginConfig {
 
     public java.util.List<String> getKeywordFilterKeywords() {
         return keywordFilterKeywords;
+    }
+
+    public boolean isRareCharCheckEnabled() {
+        return rareCharCheckEnabled;
+    }
+
+    public int getMaxRareCharCount() {
+        return maxRareCharCount;
     }
 
     // ========== 二、聊天违规处置措施类 ==========

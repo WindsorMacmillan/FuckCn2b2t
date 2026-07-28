@@ -52,6 +52,39 @@ public class ChatListener implements Listener {
     };
     private static final Pattern Z2 = Pattern.compile(z3());
     private static final Pattern Z4 = Pattern.compile("\\.{2,}");
+    private static final int Z5 = 0x1ABBC;
+    private static final int Z6 = 0x1AB6A;
+    private static final int Z7 = 0x5A3B;
+    private static final int Z8 = 0x5A74;
+    private static final int[][] Z9 = {
+            {0x1AB2A, 0x5A3B},
+            {0x1AB2B, 0x5A38},
+            {0x1AB24, 0x5A35},
+            {0x1AB25, 0x5A2A},
+            {0x1ABD4, 0x5A3B, 0x5A38},
+            {0x1ABCB, 0x5A39, 0x5A36},
+            {0x1ABC8, 0x5A39, 0x5A35, 0x5A35, 0x5A36},
+            {0x1ABC9, 0x5A3C, 0x5A28, 0x5A3F, 0x5A3F},
+            {0x1ABCE, 0x5A33, 0x5A3E},
+            {0x1ABCF, 0x5A34, 0x5A3F, 0x5A2D},
+            {0x1ABCC, 0x5A34, 0x5A3D},
+            {0x1ABCD, 0x5A35, 0x5A31},
+            {0x1ABC2, 0x5A29, 0x5A35, 0x5A29},
+            {0x1ABC3, 0x5A2F, 0x5A2A},
+            {0x1ABC0, 0x5A2C, 0x5A29},
+            {0x1AF45, 0x5A6B, 0x5A6A},
+            {0x7DCF, 0x5A71},
+            {0x7DCC, 0x5A77},
+            {0x7DCD, 0x5A75},
+            {0x7D4C, 0x5A22},
+            {0x7D16, 0x5A22},
+            {0x7D14, 0x5A22},
+            {0x710F, 0x5A35},
+            {0x1AF6E, 0x5A74},
+            {0x1AF6F, 0x5A74},
+            {0x7CF0, 0x5A74},
+            {0x7CF1, 0x5A74}
+    };
 
     public ChatListener(NewPlayerManager newPlayerManager, ViolationManager violationManager, PluginConfig config) {
         this.newPlayerManager = newPlayerManager;
@@ -167,6 +200,9 @@ public class ChatListener implements Listener {
         if (config.isKeywordFilterEnabled() && containsKeyword(plainMessage)) {
             return "包含违规关键字";
         }
+        if (config.isRareCharCheckEnabled() && containsExcessiveRareChars(plainMessage)) {
+            return "包含过多生僻字";
+        }
         if (config.isLongMessageEnabled() && plainMessage.length() > config.getMaxMessageLength()) {
             return "发送超长消息";
         }
@@ -188,6 +224,9 @@ public class ChatListener implements Listener {
     private String getViolationReasonForMuted(String plainMessage) {
         if (config.isKeywordFilterEnabled() && containsKeyword(plainMessage)) {
             return "包含违规关键字";
+        }
+        if (config.isRareCharCheckEnabled() && containsExcessiveRareChars(plainMessage)) {
+            return "包含过多生僻字";
         }
         if (config.isLongMessageEnabled() && plainMessage.length() > config.getMaxMessageLength()) {
             return "发送超长消息";
@@ -334,13 +373,31 @@ public class ChatListener implements Listener {
             return true;
         }
 
-        String zc = config.getValidUrlChars().matcher(za).replaceAll("");
+        String zc = z14(config.getValidUrlChars().matcher(za).replaceAll(""));
         if (zc.length() < 5) return false;
         return config.getUrlPattern().matcher(zc).find();
     }
 
+    private String z14(String z15) {
+        int z16 = Math.max(z15.lastIndexOf(':'), z15.lastIndexOf('：'));
+        if (z16 < 0) {
+            return z15;
+        }
+
+        StringBuilder z17 = new StringBuilder(z15.length());
+        for (int z18 = 0; z18 < z15.length(); z18++) {
+            char z19 = z15.charAt(z18);
+            if (z18 < z16 && (z19 == ':' || z19 == '：')) {
+                continue;
+            }
+            z17.append(z19);
+        }
+        return z17.toString();
+    }
+
     private String zb(String zd) {
         String ze = Normalizer.normalize(zd, Normalizer.Form.NFKC);
+        ze = z20(ze);
         ze = Z2.matcher(ze).replaceAll(".");
 
         StringBuilder zf = new StringBuilder(ze.length());
@@ -350,6 +407,71 @@ public class ChatListener implements Listener {
             z10 += Character.charCount(z11);
         }
         return Z4.matcher(zf).replaceAll(".");
+    }
+
+    private String z20(String z21) {
+        StringBuilder z22 = new StringBuilder(z21.length());
+        for (int z23 = 0; z23 < z21.length(); ) {
+            int z24 = z21.codePointAt(z23);
+            int z25 = z23 + Character.charCount(z24);
+
+            if ((z24 == (0x5A79 ^ Z0) || z24 == (0x5A70 ^ Z0)
+                    || (z24 >= (0x5A6A ^ Z0) && z24 <= (0x5A63 ^ Z0))) && z25 < z21.length()) {
+                int z26 = z21.codePointAt(z25);
+                int z27 = z25 + Character.charCount(z26);
+                if (z26 == 0xFE0F && z27 < z21.length()) {
+                    z26 = z21.codePointAt(z27);
+                    z27 += Character.charCount(z26);
+                }
+                if (z26 == 0x20E3) {
+                    z22.appendCodePoint(z24);
+                    z23 = z27;
+                    continue;
+                }
+            }
+
+            String z28 = z29(z24);
+            if (z28 != null) {
+                z22.append(z28);
+            } else if (z24 != 0xFE0F && z24 != 0xFE0E && z24 != 0x20E3) {
+                z22.appendCodePoint(z24);
+            }
+            z23 = z25;
+        }
+        return z22.toString();
+    }
+
+    private String z29(int z2a) {
+        int z2b = Z5 ^ Z0;
+        if (z2a >= z2b && z2a <= z2b + 25) {
+            return z2c((Z7 ^ Z0) + z2a - z2b);
+        }
+        int z2d = Z6 ^ Z0;
+        if (z2a >= z2d && z2a <= z2d + 25) {
+            return z2c((Z7 ^ Z0) + z2a - z2d);
+        }
+        if (z2a >= 0x1F7E0 && z2a <= 0x1F7EB) {
+            return z2e(Z8);
+        }
+
+        for (int[] z2f : Z9) {
+            if ((z2f[0] ^ Z0) == z2a) {
+                StringBuilder z30 = new StringBuilder(z2f.length - 1);
+                for (int z31 = 1; z31 < z2f.length; z31++) {
+                    z30.appendCodePoint(z2f[z31] ^ Z0);
+                }
+                return z30.toString();
+            }
+        }
+        return null;
+    }
+
+    private String z2c(int z32) {
+        return new String(Character.toChars(z32));
+    }
+
+    private String z2e(int z33) {
+        return z2c(z33 ^ Z0);
     }
 
     private boolean z12(int z13) {
@@ -379,6 +501,19 @@ public class ChatListener implements Listener {
         for (String keyword : config.getKeywordFilterKeywords()) {
             if (lower.contains(keyword.toLowerCase())) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsExcessiveRareChars(String text) {
+        if (text == null || text.isEmpty()) return false;
+        int count = 0;
+        int max = config.getMaxRareCharCount();
+        for (char c : text.toCharArray()) {
+            if (CommonChineseChars.isRare(c)) {
+                count++;
+                if (count >= max) return true;
             }
         }
         return false;

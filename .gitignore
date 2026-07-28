@@ -114,3 +114,8 @@ run/
 
 # Local-only notes for obfuscated detection internals
 LINK_DETECTION_OBFUSCATION.local.md
+
+# Character source data (not part of the plugin build)
+common_charset.txt
+gen_charset.js
+charset_escaped.txt

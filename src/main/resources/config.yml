@@ -7,20 +7,34 @@ new-player-chat-check:
   # 功能总开关
   enabled: true
 
+  # 直接关键字检测，如果玩家的消息中直接出现了列表中的任何关键字，则视为违规并拦截
+  # 适用于需要绝对禁止的关键字，不分大小写，插件设计重点不在此功能，仅作兜底使用
+  keyword-filter:
+    enabled: false
+    keywords:
+      - "cn2b2t"
+      - "xemc"
+      - "xecraft"
+
+  # 过多生僻字检测，如果玩家的消息中生僻字（不在常用字表中的CJK汉字）数量超过此限制，则视为违规并拦截
+  # 用于防范违规玩家刻意使用生僻字、异体字来规避检查
+  rare-char-check:
+    enabled: true
+    max-rare-count: 5
+
   # 超长消息检测，如果新玩家发送的消息（剔除掉所有颜色格式的纯文本）字符数量超出限制，则视为违规并拦截
   # 默认值30，这个长度的消息对于绝大多数聊天够用
   long-message:
     enabled: true
     max-length: 30
 
-  # 是否兼容InteractiveChat插件（移除聊天组件标记），以防消息超长被插件误判
-  # InteractiveChat插件会在玩家使用聊天组件（如：@其他玩家、[item]、[pos]等）时加入标识符造成消息过长
-  interactive-chat-compat:
+  # 频繁消息检测
+  spam-detection:
     enabled: true
-    strip-pattern: "<chat=[^>]+>"
-  # 是否兼容SweetMeow插件（在消息末尾智能添加"喵"），配合风格化聊天使用
-  sweetmeow-compat:
-    enabled: false
+    # 玩家发言计数窗口时长
+    time-window-seconds: 15
+    # 如果玩家在窗口时长内发言消息次数超过此数量，则视为违规并拦截
+    max-messages: 3
 
   # 链接检测，如果新玩家发送的消息（剔除掉所有url无效字符）包含链接，则视为违规并拦截
   link-detection:
@@ -33,14 +47,6 @@ new-player-chat-check:
     # 域名+端口号检测（匹配 "域名:端口" 或 "域名：端口"，支持中英文冒号，例如 mc.server.com:25565）
     domain-port-pattern: "[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+\\s*[:：]\\s*\\d+"
 
-  # 频繁消息检测
-  spam-detection:
-    enabled: true
-    # 玩家发言计数窗口时长
-    time-window-seconds: 15
-    # 如果玩家在窗口时长内发言消息次数超过此数量，则视为违规并拦截
-    max-messages: 3
-
   # 过多数字检测，如果玩家的消息中数字累积数量超过此限制，则视为违规并拦截
   # 不要求数字连续，只看消息中出现的数字总数量。此检查用于防范恶俗小鬼开盒发送手机号身份证等，有一定误判性，按需开启
   excessive-digits:
@@ -48,14 +54,14 @@ new-player-chat-check:
     # 数字字符数量上限
     max-digit-count: 9
 
-  # 直接违规关键字检测，如果玩家的消息中直接出现了列表中的任何关键字，则视为违规并拦截
-  # 此检查在所有其他检查之前运行，适用于需要绝对禁止的关键字，不分大小写
-  keyword-filter:
+  # 是否兼容InteractiveChat插件（移除聊天组件标记），以防消息超长被插件误判
+  # InteractiveChat插件会在玩家使用聊天组件（如：@其他玩家、[item]、[pos]等）时加入标识符造成消息过长
+  interactive-chat-compat:
+    enabled: true
+    strip-pattern: "<chat=[^>]+>"
+  # 是否兼容SweetMeow插件（在消息末尾智能添加"喵"），配合风格化聊天使用
+  sweetmeow-compat:
     enabled: false
-    keywords:
-      - "cn2b2t"
-      - "xemc"
-      - "xecraft"
 
 # ============================================================
 # 二、聊天违规处置措施类
@@ -172,7 +178,7 @@ new-player-reminder:
     # 发送周期（tick，20 ticks = 1 秒），默认 15 分钟（18000 ticks）
     interval-ticks: 18000
   # 聊天管制提醒内容（支持 PlaceholderAPI 占位符和 & 颜色代码）
-  message: "&f[&4聊天&f] &c新玩家有一段时间的严管聊天行为，&4期间不允许频繁发送消息、发送长消息、发送链接。&d正常游玩即可结束聊天严管。"
+  message: "&f[&4聊天&f] &c新玩家有一段时间聊天严管，&4期间不允许频繁发送消息、发送长消息、链接、大量数字。&d正常游玩即可结束聊天严管。"
 
 # 调试模式：true 时所有玩家都会被视为新玩家（用于测试）
 debug-mode: false
