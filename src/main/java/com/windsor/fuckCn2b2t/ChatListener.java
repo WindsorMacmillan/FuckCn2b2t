@@ -31,8 +31,8 @@ public class ChatListener implements Listener {
 
     // 匹配传统颜色代码 &a, &l, &#RRGGBB 等（不变，纯工具性）
     private static final Pattern LEGACY_COLOR_PATTERN = Pattern.compile("&([0-9a-fk-or]|#[0-9a-fA-F]{6})");
-    private static final int Z0 = 0x5A5A;
-    private static final int[][] Z1 = {
+    private static final int Il1 = 0x5A5A;
+    private static final int[][] I1l = {
             {0x0655, 0x3F22, 0xC484},
             {0x0655, 0x3F2A, 0x2AE3},
             {0x09BF, 0xDC05},
@@ -50,13 +50,13 @@ public class ChatListener implements Listener {
             {0xC484},
             {0x2AE3}
     };
-    private static final Pattern Z2 = Pattern.compile(z3());
-    private static final Pattern Z4 = Pattern.compile("\\.{2,}");
-    private static final int Z5 = 0x1ABBC;
-    private static final int Z6 = 0x1AB6A;
-    private static final int Z7 = 0x5A3B;
-    private static final int Z8 = 0x5A74;
-    private static final int[][] Z9 = {
+    private static final Pattern lI1 = Pattern.compile(lI1l());
+    private static final Pattern ll1 = Pattern.compile("\\.{2,}");
+    private static final int IIl = 0x1ABBC;
+    private static final int IlI = 0x1AB6A;
+    private static final int l1I = 0x5A3B;
+    private static final int I1I = 0x5A74;
+    private static final int[][] llI = {
             {0x1AB2A, 0x5A3B},
             {0x1AB2B, 0x5A38},
             {0x1AB24, 0x5A35},
@@ -92,17 +92,17 @@ public class ChatListener implements Listener {
         this.config = config;
     }
 
-    private static String z3() {
-        StringBuilder z5 = new StringBuilder();
-        for (int z6 = 0; z6 < Z1.length; z6++) {
-            if (z6 > 0) {
-                z5.append('|');
+    private static String lI1l() {
+        StringBuilder llIl = new StringBuilder();
+        for (int l1lI = 0; l1lI < I1l.length; l1lI++) {
+            if (l1lI > 0) {
+                llIl.append('|');
             }
-            for (int z7 : Z1[z6]) {
-                z5.appendCodePoint(z7 ^ Z0);
+            for (int I1ll : I1l[l1lI]) {
+                llIl.appendCodePoint(I1ll ^ Il1);
             }
         }
-        return z5.toString();
+        return llIl.toString();
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -157,9 +157,10 @@ public class ChatListener implements Listener {
     private void handleMutedPlayerChat(AsyncChatEvent event, Player player,
                                         String plainMessage, String stripedPlainMessage) {
         event.setCancelled(true);
+        boolean oldPlayer = !newPlayerManager.isNewPlayer(player);
 
-        // 检查内容违规（忽略频率）
-        if (config.isChatCheckEnabled()) {
+        // 老玩家手动隐形禁言期间仅拦截发言，不累计违规次数
+        if (!oldPlayer && config.isChatCheckEnabled()) {
             String reason = getViolationReasonForMuted(stripedPlainMessage);
             if (reason != null) {
                 violationManager.addViolation(player, reason, plainMessage);
@@ -209,7 +210,7 @@ public class ChatListener implements Listener {
         if (config.isSpamDetectionEnabled() && isSpamming(player)) {
             return "频繁发送消息";
         }
-        if (config.isLinkDetectionEnabled() && z8(plainMessage)) {
+        if (config.isLinkDetectionEnabled() && I1lI(plainMessage)) {
             return "发送链接";
         }
         if (config.isExcessiveDigitsEnabled() && containsExcessiveDigits(plainMessage)) {
@@ -231,7 +232,7 @@ public class ChatListener implements Listener {
         if (config.isLongMessageEnabled() && plainMessage.length() > config.getMaxMessageLength()) {
             return "发送超长消息";
         }
-        if (config.isLinkDetectionEnabled() && z8(plainMessage)) {
+        if (config.isLinkDetectionEnabled() && I1lI(plainMessage)) {
             return "发送链接";
         }
         if (config.isExcessiveDigitsEnabled() && containsExcessiveDigits(plainMessage)) {
@@ -297,10 +298,9 @@ public class ChatListener implements Listener {
     // ==================================================================
 
     private void sendFormattedMessageToPlayer(Player player, String messageContent) {
-        String modifiedContent = config.isSweetMeowCompatEnabled() ? appendMeow(messageContent) : messageContent;
         String format = config.getSilentChatFormat()
                 .replace("{player}", player.getName())
-                .replace("{message}", modifiedContent);
+                .replace("{message}", messageContent);
         String parsed = PlaceholderAPI.setPlaceholders(player, format);
         String miniMessageString = convertToMiniMessage(parsed);
         try {
@@ -316,166 +316,131 @@ public class ChatListener implements Listener {
     }
 
     // ==================================================================
-    // "喵" 附加（用于伪装消息，不变）
-    // ==================================================================
-
-    private String appendMeow(String original) {
-        if (original == null || original.isEmpty()) {
-            return "喵";
-        }
-        String punctuations = "。，！？；：“”‘’、,.!?;:";
-        boolean onlyPunctuation = true;
-        for (char c : original.toCharArray()) {
-            if (punctuations.indexOf(c) == -1) {
-                onlyPunctuation = false;
-                break;
-            }
-        }
-        if (onlyPunctuation) {
-            return "喵" + original;
-        }
-        int len = original.length();
-        int index = len - 1;
-        while (index >= 0 && punctuations.indexOf(original.charAt(index)) != -1) {
-            index--;
-        }
-        if (index < 0) {
-            return original + "喵";
-        } else if (index == len - 1) {
-            return original + "喵";
-        } else {
-            String before = original.substring(0, index + 1);
-            String after = original.substring(index + 1);
-            return before + "喵" + after;
-        }
-    }
-
-    // ==================================================================
     // 检测方法
     // ==================================================================
 
     private boolean isSpamming(Player player) {
         Queue<Long> timestamps = messageTimestamps.computeIfAbsent(player, k -> new ArrayDeque<>());
         long now = System.currentTimeMillis();
-        long cutoff = now - config.getSpamTimeWindowSeconds() * 1000;
+        long cutoff = now - config.getSpamTimeWindowSeconds() * 1000L;
         while (!timestamps.isEmpty() && timestamps.peek() < cutoff) {
             timestamps.poll();
         }
         return timestamps.size() >= config.getSpamMaxMessages();
     }
 
-    private boolean z8(String z9) {
-        if (z9 == null || z9.isEmpty()) return false;
+    private boolean I1lI(String l11I) {
+        if (l11I == null || l11I.isEmpty()) return false;
 
-        String za = zb(z9);
+        String IlII = IIl1(l11I);
 
-        if (config.getDomainPortPattern().matcher(za).find()) {
+        if (config.getDomainPortPattern().matcher(IlII).find()) {
             return true;
         }
 
-        String zc = z14(config.getValidUrlChars().matcher(za).replaceAll(""));
-        if (zc.length() < 5) return false;
-        return config.getUrlPattern().matcher(zc).find();
+        String lIll = ll1I(config.getValidUrlChars().matcher(IlII).replaceAll(""));
+        if (lIll.length() < 5) return false;
+        return config.getUrlPattern().matcher(lIll).find();
     }
 
-    private String z14(String z15) {
-        int z16 = Math.max(z15.lastIndexOf(':'), z15.lastIndexOf('：'));
-        if (z16 < 0) {
-            return z15;
+    private String ll1I(String I11l) {
+        int ll11 = Math.max(I11l.lastIndexOf(':'), I11l.lastIndexOf('：'));
+        if (ll11 < 0) {
+            return I11l;
         }
 
-        StringBuilder z17 = new StringBuilder(z15.length());
-        for (int z18 = 0; z18 < z15.length(); z18++) {
-            char z19 = z15.charAt(z18);
-            if (z18 < z16 && (z19 == ':' || z19 == '：')) {
+        StringBuilder I1I1 = new StringBuilder(I11l.length());
+        for (int l1I1 = 0; l1I1 < I11l.length(); l1I1++) {
+            char Il1I = I11l.charAt(l1I1);
+            if (l1I1 < ll11 && (Il1I == ':' || Il1I == '：')) {
                 continue;
             }
-            z17.append(z19);
+            I1I1.append(Il1I);
         }
-        return z17.toString();
+        return I1I1.toString();
     }
 
-    private String zb(String zd) {
-        String ze = Normalizer.normalize(zd, Normalizer.Form.NFKC);
-        ze = z20(ze);
-        ze = Z2.matcher(ze).replaceAll(".");
+    private String IIl1(String I111) {
+        String lIII = Normalizer.normalize(I111, Normalizer.Form.NFKC);
+        lIII = lIl1(lIII);
+        lIII = lI1.matcher(lIII).replaceAll(".");
 
-        StringBuilder zf = new StringBuilder(ze.length());
-        for (int z10 = 0; z10 < ze.length(); ) {
-            int z11 = ze.codePointAt(z10);
-            zf.appendCodePoint(z12(z11) ? '.' : z11);
-            z10 += Character.charCount(z11);
+        StringBuilder llII = new StringBuilder(lIII.length());
+        for (int I1l1 = 0; I1l1 < lIII.length(); ) {
+            int lI11 = lIII.codePointAt(I1l1);
+            llII.appendCodePoint(l1Il(lI11) ? '.' : lI11);
+            I1l1 += Character.charCount(lI11);
         }
-        return Z4.matcher(zf).replaceAll(".");
+        return ll1.matcher(llII).replaceAll(".");
     }
 
-    private String z20(String z21) {
-        StringBuilder z22 = new StringBuilder(z21.length());
-        for (int z23 = 0; z23 < z21.length(); ) {
-            int z24 = z21.codePointAt(z23);
-            int z25 = z23 + Character.charCount(z24);
+    private String lIl1(String lllI) {
+        StringBuilder IIll = new StringBuilder(lllI.length());
+        for (int l11l = 0; l11l < lllI.length(); ) {
+            int I11I = lllI.codePointAt(l11l);
+            int IlIl = l11l + Character.charCount(I11I);
 
-            if ((z24 == (0x5A79 ^ Z0) || z24 == (0x5A70 ^ Z0)
-                    || (z24 >= (0x5A6A ^ Z0) && z24 <= (0x5A63 ^ Z0))) && z25 < z21.length()) {
-                int z26 = z21.codePointAt(z25);
-                int z27 = z25 + Character.charCount(z26);
-                if (z26 == 0xFE0F && z27 < z21.length()) {
-                    z26 = z21.codePointAt(z27);
-                    z27 += Character.charCount(z26);
+            if ((I11I == (0x5A79 ^ Il1) || I11I == (0x5A70 ^ Il1)
+                    || (I11I >= (0x5A6A ^ Il1) && I11I <= (0x5A63 ^ Il1))) && IlIl < lllI.length()) {
+                int lIlI = lllI.codePointAt(IlIl);
+                int II1l = IlIl + Character.charCount(lIlI);
+                if (lIlI == 0xFE0F && II1l < lllI.length()) {
+                    lIlI = lllI.codePointAt(II1l);
+                    II1l += Character.charCount(lIlI);
                 }
-                if (z26 == 0x20E3) {
-                    z22.appendCodePoint(z24);
-                    z23 = z27;
+                if (lIlI == 0x20E3) {
+                    IIll.appendCodePoint(I11I);
+                    l11l = II1l;
                     continue;
                 }
             }
 
-            String z28 = z29(z24);
-            if (z28 != null) {
-                z22.append(z28);
-            } else if (z24 != 0xFE0F && z24 != 0xFE0E && z24 != 0x20E3) {
-                z22.appendCodePoint(z24);
+            String ll1l = I1Il(I11I);
+            if (ll1l != null) {
+                IIll.append(ll1l);
+            } else if (I11I != 0xFE0F && I11I != 0xFE0E && I11I != 0x20E3) {
+                IIll.appendCodePoint(I11I);
             }
-            z23 = z25;
+            l11l = IlIl;
         }
-        return z22.toString();
+        return IIll.toString();
     }
 
-    private String z29(int z2a) {
-        int z2b = Z5 ^ Z0;
-        if (z2a >= z2b && z2a <= z2b + 25) {
-            return z2c((Z7 ^ Z0) + z2a - z2b);
+    private String I1Il(int I1II) {
+        int l1ll = IIl ^ Il1;
+        if (I1II >= l1ll && I1II <= l1ll + 25) {
+            return llI1((l1I ^ Il1) + I1II - l1ll);
         }
-        int z2d = Z6 ^ Z0;
-        if (z2a >= z2d && z2a <= z2d + 25) {
-            return z2c((Z7 ^ Z0) + z2a - z2d);
+        int Il11 = IlI ^ Il1;
+        if (I1II >= Il11 && I1II <= Il11 + 25) {
+            return llI1((l1I ^ Il1) + I1II - Il11);
         }
-        if (z2a >= 0x1F7E0 && z2a <= 0x1F7EB) {
-            return z2e(Z8);
+        if (I1II >= 0x1F7E0 && I1II <= 0x1F7EB) {
+            return IlI1(I1I);
         }
 
-        for (int[] z2f : Z9) {
-            if ((z2f[0] ^ Z0) == z2a) {
-                StringBuilder z30 = new StringBuilder(z2f.length - 1);
-                for (int z31 = 1; z31 < z2f.length; z31++) {
-                    z30.appendCodePoint(z2f[z31] ^ Z0);
+        for (int[] IIlI : llI) {
+            if ((IIlI[0] ^ Il1) == I1II) {
+                StringBuilder l1II = new StringBuilder(IIlI.length - 1);
+                for (int I1I1 = 1; I1I1 < IIlI.length; I1I1++) {
+                    l1II.appendCodePoint(IIlI[I1I1] ^ Il1);
                 }
-                return z30.toString();
+                return l1II.toString();
             }
         }
         return null;
     }
 
-    private String z2c(int z32) {
-        return new String(Character.toChars(z32));
+    private String llI1(int lIIl) {
+        return new String(Character.toChars(lIIl));
     }
 
-    private String z2e(int z33) {
-        return z2c(z33 ^ Z0);
+    private String IlI1(int lI1I) {
+        return llI1(lI1I ^ Il1);
     }
 
-    private boolean z12(int z13) {
-        return switch (z13) {
+    private boolean l1Il(int I1iI) {
+        return switch (I1iI) {
             case '.',
                     // CJK/common full-stop variants and separators.
                     0x3002, 0xFF61, 0xFF0E, 0xFE52, 0xFE12, 0x30FB, 0xFF65,

@@ -59,9 +59,6 @@ new-player-chat-check:
   interactive-chat-compat:
     enabled: true
     strip-pattern: "<chat=[^>]+>"
-  # 是否兼容SweetMeow插件（在消息末尾智能添加"喵"），配合风格化聊天使用
-  sweetmeow-compat:
-    enabled: false
 
 # ============================================================
 # 二、聊天违规处置措施类

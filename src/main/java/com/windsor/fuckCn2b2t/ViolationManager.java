@@ -120,7 +120,7 @@ public class ViolationManager {
     /**
      * 增加玩家的违规积分，并返回新的总分
      */
-    public int addViolation(Player player, String violationReason, String messageContent) {
+    public void addViolation(Player player, String violationReason, String messageContent) {
         UUID uuid = player.getUniqueId();
         int oldPoints = violationPoints.getOrDefault(uuid, 0);
         int newPoints = oldPoints + 1;
@@ -172,7 +172,6 @@ public class ViolationManager {
             savePoints();
         });
 
-        return newPoints;
     }
 
     public int getPoints(Player player) {

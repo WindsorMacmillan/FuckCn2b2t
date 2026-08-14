@@ -33,8 +33,6 @@ public class PluginConfig {
     private boolean interactiveChatCompatEnabled;
     private Pattern interactiveChatStripPattern;
 
-    private boolean sweetMeowCompatEnabled;
-
     private boolean linkDetectionEnabled;
     private Pattern urlPattern;
     private Pattern validUrlChars;
@@ -127,8 +125,6 @@ public class PluginConfig {
         interactiveChatCompatEnabled = icc.getBoolean("enabled", true);
         interactiveChatStripPattern = Pattern.compile(icc.getString("strip-pattern", "<chat=[^>]+>"));
 
-        sweetMeowCompatEnabled = chatCheck.getBoolean("sweetmeow-compat.enabled", false);
-
         ConfigurationSection link = getSection(chatCheck, "link-detection");
         linkDetectionEnabled = link.getBoolean("enabled", true);
         urlPattern = Pattern.compile(link.getString("pattern",
@@ -150,9 +146,6 @@ public class PluginConfig {
         ConfigurationSection kw = getSection(chatCheck, "keyword-filter");
         keywordFilterEnabled = kw.getBoolean("enabled", false);
         keywordFilterKeywords = kw.getStringList("keywords");
-        if (keywordFilterKeywords == null) {
-            keywordFilterKeywords = java.util.List.of();
-        }
 
         ConfigurationSection rare = getSection(chatCheck, "rare-char-check");
         rareCharCheckEnabled = rare.getBoolean("enabled", true);
@@ -289,10 +282,6 @@ public class PluginConfig {
 
     public Pattern getInteractiveChatStripPattern() {
         return interactiveChatStripPattern;
-    }
-
-    public boolean isSweetMeowCompatEnabled() {
-        return sweetMeowCompatEnabled;
     }
 
     public boolean isLinkDetectionEnabled() {

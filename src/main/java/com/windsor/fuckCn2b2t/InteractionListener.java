@@ -19,7 +19,6 @@ import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.view.AnvilView;
 
 import java.util.*;
 
@@ -67,7 +66,7 @@ public class InteractionListener implements Listener {
         StringBuilder content = new StringBuilder();
         for (Component comp : components) {
             String text = PlainTextComponentSerializer.plainText().serialize(comp);
-            if (text != null && !text.isEmpty()) {
+            if (!text.isEmpty()) {
                 content.append(text).append(" ");
             }
         }
@@ -86,7 +85,6 @@ public class InteractionListener implements Listener {
         HumanEntity human = event.getView().getPlayer();
         if (!(human instanceof Player player)) return;
         if (!violationManager.isMuted(player)) return;
-        if (!(event.getView() instanceof AnvilView)) return;
 
         AnvilInventory inventory = event.getInventory();
         ItemStack inputItem = inventory.getItem(0);
@@ -132,11 +130,7 @@ public class InteractionListener implements Listener {
             if (originalMeta != null && originalMeta.hasDisplayName()) {
                 originalDisplayName = originalMeta.getDisplayName();
             }
-            if (originalDisplayName != null) {
-                meta.setDisplayName(originalDisplayName);
-            } else {
-                meta.setDisplayName(null);
-            }
+            meta.setDisplayName(originalDisplayName);
             modified.setItemMeta(meta);
         }
 
@@ -180,9 +174,9 @@ public class InteractionListener implements Listener {
 
         plugin.getScheduler().runGlobal(() -> {
             ItemStack book = player.getInventory().getItemInMainHand();
-            if (book == null || (book.getType() != Material.WRITABLE_BOOK && book.getType() != Material.WRITTEN_BOOK)) {
+            if (book.getType() != Material.WRITABLE_BOOK && book.getType() != Material.WRITTEN_BOOK) {
                 book = player.getInventory().getItemInOffHand();
-                if (book == null || (book.getType() != Material.WRITABLE_BOOK && book.getType() != Material.WRITTEN_BOOK)) {
+                if (book.getType() != Material.WRITABLE_BOOK && book.getType() != Material.WRITTEN_BOOK) {
                     return;
                 }
             }
