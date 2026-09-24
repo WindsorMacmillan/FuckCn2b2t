@@ -15,30 +15,32 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerEditBookEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.block.Action;
 import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class InteractionListener implements Listener {
 
     private final ViolationManager violationManager;
-    private final FuckCn2b2t plugin;
     private final PluginConfig config;
 
     // 记录铁砧界面中原始物品，用于还原 (Inventory -> 原始物品)
     private final Map<AnvilInventory, ItemStack> originalItems = new HashMap<>();
+    private final Set<String> interceptedBookContents = ConcurrentHashMap.newKeySet();
 
-    public InteractionListener(ViolationManager violationManager, FuckCn2b2t plugin, PluginConfig config) {
+    public InteractionListener(ViolationManager violationManager, PluginConfig config) {
         this.violationManager = violationManager;
-        this.plugin = plugin;
         this.config = config;
     }
 
     // --- 私聊命令拦截 ---
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onCommandPreprocess(PlayerCommandPreprocessEvent event) {
         if (!config.isInterceptPrivateMessage()) return;
         Player player = event.getPlayer();
@@ -149,7 +151,7 @@ public class InteractionListener implements Listener {
         originalItems.remove(inventory);
     }
 
-    // ================== 书与笔拦截（延迟清空） ==================
+    // ================== 书与笔拦截 ==================
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onBookEdit(PlayerEditBookEvent event) {
         if (!config.isInterceptBook()) return;
@@ -171,21 +173,39 @@ public class InteractionListener implements Listener {
         Bukkit.getLogger().info(String.format("[聊天管制-书与笔拦截] 玩家 %s 在隐形禁言期间尝试编辑书与笔，内容:\n%s",
                 player.getName(), content));
         notifyOps(String.format("玩家 %s 在隐形禁言期间尝试编辑书与笔，内容:\n%s", player.getName(), content));
+        String contentKey = bookContentKey(newBookMeta);
+        if (!contentKey.isEmpty()) {
+            interceptedBookContents.add(contentKey);
+        }
+    }
 
-        plugin.getScheduler().runGlobal(() -> {
-            ItemStack book = player.getInventory().getItemInMainHand();
-            if (book.getType() != Material.WRITABLE_BOOK && book.getType() != Material.WRITTEN_BOOK) {
-                book = player.getInventory().getItemInOffHand();
-                if (book.getType() != Material.WRITABLE_BOOK && book.getType() != Material.WRITTEN_BOOK) {
-                    return;
-                }
-            }
-            ItemMeta meta = book.getItemMeta();
-            if (!(meta instanceof BookMeta bookMeta)) return;
-            bookMeta.pages(Collections.emptyList());
-            book.setItemMeta(bookMeta);
-            Bukkit.getLogger().info(String.format("[聊天管制-书与笔清空] 玩家 %s 的书已被清空。", player.getName()));
-        });
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBookOpen(PlayerInteractEvent event) {
+        if (!config.isInterceptBook()) return;
+        if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+
+        Player player = event.getPlayer();
+        if (violationManager.isMuted(player)) return;
+
+        ItemStack book = event.getItem();
+        if (book == null || (book.getType() != Material.WRITABLE_BOOK && book.getType() != Material.WRITTEN_BOOK)) return;
+        ItemMeta meta = book.getItemMeta();
+        if (!(meta instanceof BookMeta bookMeta)) return;
+
+        String contentKey = bookContentKey(bookMeta);
+        if (!interceptedBookContents.contains(contentKey)) return;
+
+        bookMeta.pages(Collections.emptyList());
+        book.setItemMeta(bookMeta);
+        Bukkit.getLogger().info(String.format("[聊天管制-书与笔清空] 玩家 %s 打开了被拦截内容的书，书页已清空。", player.getName()));
+    }
+
+    private String bookContentKey(BookMeta bookMeta) {
+        StringBuilder key = new StringBuilder();
+        for (Component page : bookMeta.pages()) {
+            key.append(PlainTextComponentSerializer.plainText().serialize(page)).append('\u001e');
+        }
+        return key.toString();
     }
 
     // --- 辅助方法：通知在线OP ---

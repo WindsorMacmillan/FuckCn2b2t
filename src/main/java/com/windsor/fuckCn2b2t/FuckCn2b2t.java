@@ -25,7 +25,7 @@ public final class FuckCn2b2t extends JavaPlugin {
         newPlayerManager = new NewPlayerManager(this, pluginConfig);
         violationManager = new ViolationManager(this, pluginConfig);
         chatListener = new ChatListener(newPlayerManager, violationManager, pluginConfig);
-        interactionListener = new InteractionListener(violationManager, this, pluginConfig);
+        interactionListener = new InteractionListener(violationManager, pluginConfig);
 
         // 注册事件和命令
         getServer().getPluginManager().registerEvents(new PlayerListener(newPlayerManager, pluginConfig), this);

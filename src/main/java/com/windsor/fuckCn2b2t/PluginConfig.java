@@ -34,6 +34,8 @@ public class PluginConfig {
     private Pattern interactiveChatStripPattern;
 
     private boolean linkDetectionEnabled;
+    // Lophine 自定义：将玩家上一条消息与当前消息拼接后进行链接检查
+    private boolean lolChatModeEnabled;
     private Pattern urlPattern;
     private Pattern validUrlChars;
     private Pattern domainPortPattern;
@@ -127,6 +129,7 @@ public class PluginConfig {
 
         ConfigurationSection link = getSection(chatCheck, "link-detection");
         linkDetectionEnabled = link.getBoolean("enabled", true);
+        lolChatModeEnabled = link.getBoolean("lol-chat-mode", true);
         urlPattern = Pattern.compile(link.getString("pattern",
                 "(?i)(?:https?://|ftp://|www\\.)[a-zA-Z0-9\\-.]+\\.(?:[a-zA-Z]{2,}(?:/\\S*)?)|" +
                         "(?i)(?:[a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,}(?:/\\S*)?"));
@@ -286,6 +289,11 @@ public class PluginConfig {
 
     public boolean isLinkDetectionEnabled() {
         return linkDetectionEnabled;
+    }
+
+    // Lophine 自定义：拼接链接检查开关
+    public boolean isLolChatModeEnabled() {
+        return lolChatModeEnabled;
     }
 
     public Pattern getUrlPattern() {

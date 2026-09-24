@@ -16,6 +16,7 @@ import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,6 +26,10 @@ public class ChatListener implements Listener {
     private final ViolationManager violationManager;
     private final PluginConfig config;
     private final Map<Player, Queue<Long>> messageTimestamps = new ConcurrentHashMap<>();
+    // Lophine 自定义：按玩家记录上一条发言，供拼接链接检查使用
+    private final Map<UUID, String> previousMessages = new ConcurrentHashMap<>();
+    // Lophine 自定义：将当前事件计算出的拼接文本交给禁言处理分支
+    private final Map<UUID, String> currentLinkCheckMessages = new ConcurrentHashMap<>();
 
     // MiniMessage 解析器（复用，线程安全）
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
@@ -110,6 +115,13 @@ public class ChatListener implements Listener {
         Player player = event.getPlayer();
         String plainMessage = PlainTextComponentSerializer.plainText().serialize(event.message());
 
+        // 先保存当前消息，同时取出上一条消息用于本次链接检查。
+        String previousMessage = config.isLolChatModeEnabled()
+                ? previousMessages.put(player.getUniqueId(), plainMessage)
+                : previousMessages.remove(player.getUniqueId());
+        String linkCheckMessage = previousMessage == null ? plainMessage : previousMessage + plainMessage;
+        currentLinkCheckMessages.put(player.getUniqueId(), linkCheckMessage);
+
         // InteractiveChat 兼容：移除聊天组件标记
         String stripedPlainMessage = plainMessage;
         if (config.isInteractiveChatCompatEnabled()) {
@@ -124,25 +136,33 @@ public class ChatListener implements Listener {
 
         // 非新玩家，放行
         if (!newPlayerManager.isNewPlayer(player)) {
+            currentLinkCheckMessages.remove(player.getUniqueId());
             return;
         }
 
         // 聊天检查功能总开关
         if (!config.isChatCheckEnabled()) {
+            currentLinkCheckMessages.remove(player.getUniqueId());
             recordMessage(player);
             return;
         }
 
         // 检查违规（包括频率）
         String reason = getViolationReason(stripedPlainMessage, player);
+        if (reason == null && config.isLinkDetectionEnabled() && config.isLolChatModeEnabled()
+                && I1lI(linkCheckMessage)) {
+            reason = "发送链接";
+        }
         if (reason == null) {
             // 合法消息：记录时间戳，放行
+            currentLinkCheckMessages.remove(player.getUniqueId());
             recordMessage(player);
             return;
         }
 
         // 违规处理
         event.setCancelled(true);
+        currentLinkCheckMessages.remove(player.getUniqueId());
         violationManager.addViolation(player, reason, plainMessage);
 
         // 仅自己可见模式（silent-mode）则向玩家发送假消息
@@ -157,11 +177,17 @@ public class ChatListener implements Listener {
     private void handleMutedPlayerChat(AsyncChatEvent event, Player player,
                                         String plainMessage, String stripedPlainMessage) {
         event.setCancelled(true);
+        String linkCheckMessage = currentLinkCheckMessages.remove(player.getUniqueId());
         boolean oldPlayer = !newPlayerManager.isNewPlayer(player);
 
         // 老玩家手动隐形禁言期间仅拦截发言，不累计违规次数
         if (!oldPlayer && config.isChatCheckEnabled()) {
             String reason = getViolationReasonForMuted(stripedPlainMessage);
+            if (reason == null && config.isLinkDetectionEnabled() && config.isLolChatModeEnabled()
+                    && linkCheckMessage != null
+                    && I1lI(linkCheckMessage)) {
+                reason = "发送链接";
+            }
             if (reason != null) {
                 violationManager.addViolation(player, reason, plainMessage);
                 // 禁言期间每次额外增加禁言时长
