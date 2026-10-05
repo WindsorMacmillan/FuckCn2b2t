@@ -34,10 +34,10 @@ public class PluginConfig {
     private Pattern interactiveChatStripPattern;
 
     private boolean linkDetectionEnabled;
-    // Lophine 自定义：将玩家上一条消息与当前消息拼接后进行链接检查
     private boolean lolChatModeEnabled;
+    private long lolChatTimeoutMillis;
+    private boolean linkStrictTldEnabled;
     private Pattern urlPattern;
-    private Pattern validUrlChars;
     private Pattern domainPortPattern;
 
     private boolean spamDetectionEnabled;
@@ -130,10 +130,11 @@ public class PluginConfig {
         ConfigurationSection link = getSection(chatCheck, "link-detection");
         linkDetectionEnabled = link.getBoolean("enabled", true);
         lolChatModeEnabled = link.getBoolean("lol-chat-mode", true);
+        lolChatTimeoutMillis = Math.max(0L, link.getLong("lol-chat-timeout-seconds", 10L)) * 1000L;
+        linkStrictTldEnabled = link.getBoolean("strict-tld", true);
         urlPattern = Pattern.compile(link.getString("pattern",
                 "(?i)(?:https?://|ftp://|www\\.)[a-zA-Z0-9\\-.]+\\.(?:[a-zA-Z]{2,}(?:/\\S*)?)|" +
                         "(?i)(?:[a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,}(?:/\\S*)?"));
-        validUrlChars = Pattern.compile(link.getString("valid-url-chars", "[^a-zA-Z0-9.\\-/:?&=#]"));
         domainPortPattern = Pattern.compile(link.getString("domain-port-pattern",
                 "[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+\\s*[:：]\\s*\\d+"));
 
@@ -291,17 +292,20 @@ public class PluginConfig {
         return linkDetectionEnabled;
     }
 
-    // Lophine 自定义：拼接链接检查开关
     public boolean isLolChatModeEnabled() {
         return lolChatModeEnabled;
     }
 
-    public Pattern getUrlPattern() {
-        return urlPattern;
+    public long getLolChatTimeoutMillis() {
+        return lolChatTimeoutMillis;
     }
 
-    public Pattern getValidUrlChars() {
-        return validUrlChars;
+    public boolean isLinkStrictTldEnabled() {
+        return linkStrictTldEnabled;
+    }
+
+    public Pattern getUrlPattern() {
+        return urlPattern;
     }
 
     public Pattern getDomainPortPattern() {

@@ -21,6 +21,8 @@ public final class FuckCn2b2t extends JavaPlugin {
         saveDefaultConfig();
         pluginConfig = new PluginConfig(this);
 
+        ChatListener.l11l(I1lI.l1lI());
+
         // 初始化管理器
         newPlayerManager = new NewPlayerManager(this, pluginConfig);
         violationManager = new ViolationManager(this, pluginConfig);
@@ -63,6 +65,9 @@ public final class FuckCn2b2t extends JavaPlugin {
         if (violationManager != null) {
             violationManager.savePoints();
         }
+        if (chatListener != null) {
+            chatListener.shutdown();
+        }
         getLogger().info("FuckCn2b2t 插件已卸载");
     }
 
@@ -70,6 +75,7 @@ public final class FuckCn2b2t extends JavaPlugin {
     public void reloadPlugin() {
         reloadConfig();
         pluginConfig.load();              // 重新读取全部配置
+        ChatListener.l11l(I1lI.l1lI());
         if (newPlayerManager != null) {
             newPlayerManager.reload();    // 重载统计项缓存
         }

@@ -26,10 +26,11 @@ public class ChatListener implements Listener {
     private final ViolationManager violationManager;
     private final PluginConfig config;
     private final Map<Player, Queue<Long>> messageTimestamps = new ConcurrentHashMap<>();
-    // Lophine 自定义：按玩家记录上一条发言，供拼接链接检查使用
-    private final Map<UUID, String> previousMessages = new ConcurrentHashMap<>();
-    // Lophine 自定义：将当前事件计算出的拼接文本交给禁言处理分支
+    private final Map<UUID, IllI> l1lI = new ConcurrentHashMap<>();
     private final Map<UUID, String> currentLinkCheckMessages = new ConcurrentHashMap<>();
+
+    private record IllI(String text, long timestamp) {
+    }
 
     // MiniMessage 解析器（复用，线程安全）
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
@@ -91,6 +92,18 @@ public class ChatListener implements Listener {
             {0x7CF1, 0x5A74}
     };
 
+    private static volatile I1lI lllI;
+    private static final Pattern lIlI =
+            Pattern.compile("(?i)(?:https?://|ftp://|www\\.)[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+");
+    private static final Pattern lII1 = Pattern.compile("[^a-zA-Z0-9.\\-/:?&=#]");
+
+    private static final int I1l1 = 4;
+    private static final int IIlI = 5;
+
+    public static void l11l(I1lI l1II) {
+        lllI = l1II;
+    }
+
     public ChatListener(NewPlayerManager newPlayerManager, ViolationManager violationManager, PluginConfig config) {
         this.newPlayerManager = newPlayerManager;
         this.violationManager = violationManager;
@@ -115,11 +128,17 @@ public class ChatListener implements Listener {
         Player player = event.getPlayer();
         String plainMessage = PlainTextComponentSerializer.plainText().serialize(event.message());
 
-        // 先保存当前消息，同时取出上一条消息用于本次链接检查。
-        String previousMessage = config.isLolChatModeEnabled()
-                ? previousMessages.put(player.getUniqueId(), plainMessage)
-                : previousMessages.remove(player.getUniqueId());
-        String linkCheckMessage = previousMessage == null ? plainMessage : previousMessage + plainMessage;
+        long now = System.currentTimeMillis();
+        IllI Ill1 = null;
+        if (config.isLolChatModeEnabled()) {
+            Ill1 = l1lI.put(player.getUniqueId(), new IllI(plainMessage, now));
+        } else {
+            l1lI.remove(player.getUniqueId());
+        }
+        String linkCheckMessage = plainMessage;
+        if (Ill1 != null && now - Ill1.timestamp <= config.getLolChatTimeoutMillis()) {
+            linkCheckMessage = Ill1.text + plainMessage;
+        }
         currentLinkCheckMessages.put(player.getUniqueId(), linkCheckMessage);
 
         // InteractiveChat 兼容：移除聊天组件标记
@@ -150,7 +169,7 @@ public class ChatListener implements Listener {
         // 检查违规（包括频率）
         String reason = getViolationReason(stripedPlainMessage, player);
         if (reason == null && config.isLinkDetectionEnabled() && config.isLolChatModeEnabled()
-                && I1lI(linkCheckMessage)) {
+                && lIIl(linkCheckMessage)) {
             reason = "发送链接";
         }
         if (reason == null) {
@@ -185,7 +204,7 @@ public class ChatListener implements Listener {
             String reason = getViolationReasonForMuted(stripedPlainMessage);
             if (reason == null && config.isLinkDetectionEnabled() && config.isLolChatModeEnabled()
                     && linkCheckMessage != null
-                    && I1lI(linkCheckMessage)) {
+                    && lIIl(linkCheckMessage)) {
                 reason = "发送链接";
             }
             if (reason != null) {
@@ -236,7 +255,7 @@ public class ChatListener implements Listener {
         if (config.isSpamDetectionEnabled() && isSpamming(player)) {
             return "频繁发送消息";
         }
-        if (config.isLinkDetectionEnabled() && I1lI(plainMessage)) {
+        if (config.isLinkDetectionEnabled() && lIIl(plainMessage)) {
             return "发送链接";
         }
         if (config.isExcessiveDigitsEnabled() && containsExcessiveDigits(plainMessage)) {
@@ -258,7 +277,7 @@ public class ChatListener implements Listener {
         if (config.isLongMessageEnabled() && plainMessage.length() > config.getMaxMessageLength()) {
             return "发送超长消息";
         }
-        if (config.isLinkDetectionEnabled() && I1lI(plainMessage)) {
+        if (config.isLinkDetectionEnabled() && lIIl(plainMessage)) {
             return "发送链接";
         }
         if (config.isExcessiveDigitsEnabled() && containsExcessiveDigits(plainMessage)) {
@@ -355,18 +374,73 @@ public class ChatListener implements Listener {
         return timestamps.size() >= config.getSpamMaxMessages();
     }
 
-    private boolean I1lI(String l11I) {
+    private boolean lIIl(String l11I) {
         if (l11I == null || l11I.isEmpty()) return false;
 
         String IlII = IIl1(l11I);
-
         if (config.getDomainPortPattern().matcher(IlII).find()) {
             return true;
         }
+        if (lIlI.matcher(IlII).find()) {
+            return true;
+        }
 
-        String lIll = ll1I(config.getValidUrlChars().matcher(IlII).replaceAll(""));
-        if (lIll.length() < 5) return false;
-        return config.getUrlPattern().matcher(lIll).find();
+        String l1II = l1ll(l11I);
+
+        String I1I1 = ll1I(lII1.matcher(IlII).replaceAll(""));
+        String l1l1 = ll1I(lII1.matcher(l1II).replaceAll(""));
+
+        if (l1l1.length() >= 5 && I1ll(l1l1, I1l1)) {
+            return true;
+        }
+        if (I1I1.length() >= 5 && I1ll(I1I1, IIlI)) {
+            return true;
+        }
+
+        return Il1l(l1II);
+    }
+
+    private String l1ll(String I11I) {
+        return lIl1(Normalizer.normalize(I11I, Normalizer.Form.NFKC));
+    }
+
+    private boolean I1ll(String lI1I, int lI11) {
+        I1lI l1II = lllI;
+        if (l1II == null || !config.isLinkStrictTldEnabled()) {
+            return config.getUrlPattern().matcher(lI1I).find();
+        }
+
+        for (String l1l1 : lI1I.split("[^a-zA-Z0-9.]+")) {
+            if (l1l1.indexOf('.') < 0) continue;
+            String[] I1I1 = l1l1.split("\\.+", -1);
+            for (int l11I = I1I1.length - 1; l11I >= 1; l11I--) {
+                String llIl = I1I1[l11I];
+                if (llIl.isEmpty() || !l1II.II1I(llIl)) continue;
+                String lIll = I1I1[l11I - 1];
+                if (lIll.isEmpty() || lIll.length() < lI11) continue;
+                if (lIll.length() + 1 + llIl.length() < 5) continue;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean Il1l(String l1II) {
+        I1lI l1l1 = lllI;
+        if (l1l1 == null || l1l1.Il1l() == 0 || !config.isLinkStrictTldEnabled()) return false;
+
+        Matcher I1I1 = l1l1.llIl().matcher(l1II);
+        while (I1I1.find()) {
+            if (!I11l(l1II, I1I1.start() - 1)) continue;
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean I11l(String I1I1, int l11I) {
+        if (l11I < 0 || l11I >= I1I1.length()) return false;
+        char IlI1 = I1I1.charAt(l11I);
+        return (IlI1 >= 'a' && IlI1 <= 'z') || (IlI1 >= 'A' && IlI1 <= 'Z') || (IlI1 >= '0' && IlI1 <= '9') || IlI1 == '.';
     }
 
     private String ll1I(String I11l) {
@@ -468,18 +542,13 @@ public class ChatListener implements Listener {
     private boolean l1Il(int I1iI) {
         return switch (I1iI) {
             case '.',
-                    // CJK/common full-stop variants and separators.
                     0x3002, 0xFF61, 0xFF0E, 0xFE52, 0xFE12, 0x30FB, 0xFF65,
                     0x4E36, 0x3001, 0xFF64, 0xFE51,
-                    // Unicode confusables that map to full stop or repeated full stops.
                     0x2024, 0x2025, 0x2026, 0x0701, 0x0702, 0xA60E, 0x10A50,
                     0xA4F8, 0xA4FA, 0xA4FB, 0x1D16D,
-                    // Other full-stop punctuation used in non-Latin scripts.
                     0x06D4, 0x1362, 0x166E, 0x1803, 0x1809,
-                    // Middle-dot, bullet, dot-operator and small round punctuation often used as separators.
                     0x00B7, 0x0387, 0x16EB, 0x2E31, 0x10101, 0x2022, 0x2027,
                     0x2219, 0x22C5, 0x25CF, 0x25E6, 0x2981, 0x2E30, 0xFE45, 0xFE46,
-                    // Ring-like dot substitutions that are visually close in chat fonts.
                     0x00B0, 0x02DA, 0x2218, 0x25CB, 0x25C9, 0x25CC, 0x25D8,
                     0x25D9, 0x26AC -> true;
             default -> false;
@@ -528,5 +597,20 @@ public class ChatListener implements Listener {
     private void recordMessage(Player player) {
         Queue<Long> timestamps = messageTimestamps.computeIfAbsent(player, k -> new ArrayDeque<>());
         timestamps.offer(System.currentTimeMillis());
+    }
+
+    @EventHandler
+    public void onPlayerQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        messageTimestamps.remove(player);
+        l1lI.remove(player.getUniqueId());
+        currentLinkCheckMessages.remove(player.getUniqueId());
+    }
+
+    public void shutdown() {
+        messageTimestamps.clear();
+        l1lI.clear();
+        currentLinkCheckMessages.clear();
+        lllI = null;
     }
 }
