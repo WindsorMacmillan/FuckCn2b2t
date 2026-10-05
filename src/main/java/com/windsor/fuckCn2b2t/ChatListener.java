@@ -96,9 +96,14 @@ public class ChatListener implements Listener {
     private static final Pattern lIlI =
             Pattern.compile("(?i)(?:https?://|ftp://|www\\.)[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+");
     private static final Pattern lII1 = Pattern.compile("[^a-zA-Z0-9.\\-/:?&=#]");
+    private static final Pattern I11 = Pattern.compile("[&§][0-9a-fk-orA-FK-OR]");
+    private static final Pattern Ill = Pattern.compile(
+            "(?<!\\d)(?:(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(?!\\d)");
+    private static final java.util.Set<String> II11 = java.util.Set.of(
+            "tab", "cd", "az", "ups", "help", "no", "is", "you", "to", "so",
+            "wow", "gay", "black", "windows");
 
-    private static final int I1l1 = 4;
-    private static final int IIlI = 5;
+    private static final int I1l1 = 3;
 
     public static void l11l(I1lI l1II) {
         lllI = l1II;
@@ -169,7 +174,7 @@ public class ChatListener implements Listener {
         // 检查违规（包括频率）
         String reason = getViolationReason(stripedPlainMessage, player);
         if (reason == null && config.isLinkDetectionEnabled() && config.isLolChatModeEnabled()
-                && lIIl(linkCheckMessage)) {
+                && lIIl(linkCheckMessage, config.isLinkAggressive())) {
             reason = "发送链接";
         }
         if (reason == null) {
@@ -204,7 +209,7 @@ public class ChatListener implements Listener {
             String reason = getViolationReasonForMuted(stripedPlainMessage);
             if (reason == null && config.isLinkDetectionEnabled() && config.isLolChatModeEnabled()
                     && linkCheckMessage != null
-                    && lIIl(linkCheckMessage)) {
+                    && lIIl(linkCheckMessage, config.isLinkAggressive())) {
                 reason = "发送链接";
             }
             if (reason != null) {
@@ -255,7 +260,7 @@ public class ChatListener implements Listener {
         if (config.isSpamDetectionEnabled() && isSpamming(player)) {
             return "频繁发送消息";
         }
-        if (config.isLinkDetectionEnabled() && lIIl(plainMessage)) {
+        if (config.isLinkDetectionEnabled() && lIIl(plainMessage, config.isLinkAggressive())) {
             return "发送链接";
         }
         if (config.isExcessiveDigitsEnabled() && containsExcessiveDigits(plainMessage)) {
@@ -277,7 +282,7 @@ public class ChatListener implements Listener {
         if (config.isLongMessageEnabled() && plainMessage.length() > config.getMaxMessageLength()) {
             return "发送超长消息";
         }
-        if (config.isLinkDetectionEnabled() && lIIl(plainMessage)) {
+        if (config.isLinkDetectionEnabled() && lIIl(plainMessage, config.isLinkAggressive())) {
             return "发送链接";
         }
         if (config.isExcessiveDigitsEnabled() && containsExcessiveDigits(plainMessage)) {
@@ -375,36 +380,30 @@ public class ChatListener implements Listener {
     }
 
     private boolean lIIl(String l11I) {
+        return lIIl(l11I, false);
+    }
+
+    private boolean lIIl(String l11I, boolean III1) {
         if (l11I == null || l11I.isEmpty()) return false;
 
-        String IlII = IIl1(l11I);
-        if (config.getDomainPortPattern().matcher(IlII).find()) {
+        String IlII = IIl1(I11.matcher(l11I).replaceAll(""), III1);
+        if (Ill.matcher(IlII).find()) {
             return true;
         }
         if (lIlI.matcher(IlII).find()) {
             return true;
         }
 
-        String l1II = l1ll(l11I);
-
         String I1I1 = ll1I(lII1.matcher(IlII).replaceAll(""));
-        String l1l1 = ll1I(lII1.matcher(l1II).replaceAll(""));
 
-        if (l1l1.length() >= 5 && I1ll(l1l1, I1l1)) {
-            return true;
-        }
-        if (I1I1.length() >= 5 && I1ll(I1I1, IIlI)) {
+        if (I1I1.length() >= 5 && I1ll(I1I1, I1l1, III1)) {
             return true;
         }
 
-        return Il1l(l1II);
+        return Il1l(IlII);
     }
 
-    private String l1ll(String I11I) {
-        return lIl1(Normalizer.normalize(I11I, Normalizer.Form.NFKC));
-    }
-
-    private boolean I1ll(String lI1I, int lI11) {
+    private boolean I1ll(String lI1I, int lI11, boolean III1) {
         I1lI l1II = lllI;
         if (l1II == null || !config.isLinkStrictTldEnabled()) {
             return config.getUrlPattern().matcher(lI1I).find();
@@ -416,6 +415,7 @@ public class ChatListener implements Listener {
             for (int l11I = I1I1.length - 1; l11I >= 1; l11I--) {
                 String llIl = I1I1[l11I];
                 if (llIl.isEmpty() || !l1II.II1I(llIl)) continue;
+                if (!III1 && II11.contains(llIl)) continue;
                 String lIll = I1I1[l11I - 1];
                 if (lIll.isEmpty() || lIll.length() < lI11) continue;
                 if (lIll.length() + 1 + llIl.length() < 5) continue;
@@ -431,16 +431,10 @@ public class ChatListener implements Listener {
 
         Matcher I1I1 = l1l1.llIl().matcher(l1II);
         while (I1I1.find()) {
-            if (!I11l(l1II, I1I1.start() - 1)) continue;
-            return true;
+            int l11I = I1I1.start() - 1;
+            if (l11I >= 0 && l1II.charAt(l11I) == '.') return true;
         }
         return false;
-    }
-
-    private static boolean I11l(String I1I1, int l11I) {
-        if (l11I < 0 || l11I >= I1I1.length()) return false;
-        char IlI1 = I1I1.charAt(l11I);
-        return (IlI1 >= 'a' && IlI1 <= 'z') || (IlI1 >= 'A' && IlI1 <= 'Z') || (IlI1 >= '0' && IlI1 <= '9') || IlI1 == '.';
     }
 
     private String ll1I(String I11l) {
@@ -461,17 +455,63 @@ public class ChatListener implements Listener {
     }
 
     private String IIl1(String I111) {
+        return IIl1(I111, true);
+    }
+
+    private String IIl1(String I111, boolean III1) {
         String lIII = Normalizer.normalize(I111, Normalizer.Form.NFKC);
         lIII = lIl1(lIII);
-        lIII = lI1.matcher(lIII).replaceAll(".");
+
+        if (III1) {
+            lIII = lI1.matcher(lIII).replaceAll(".");
+            StringBuilder llII = new StringBuilder(lIII.length());
+            for (int I1l1 = 0; I1l1 < lIII.length(); ) {
+                int lI11 = lIII.codePointAt(I1l1);
+                llII.appendCodePoint(l1Il(lI11) ? '.' : lI11);
+                I1l1 += Character.charCount(lI11);
+            }
+            return ll1.matcher(llII).replaceAll(".");
+        }
 
         StringBuilder llII = new StringBuilder(lIII.length());
-        for (int I1l1 = 0; I1l1 < lIII.length(); ) {
-            int lI11 = lIII.codePointAt(I1l1);
-            llII.appendCodePoint(l1Il(lI11) ? '.' : lI11);
-            I1l1 += Character.charCount(lI11);
+        Matcher lIlI = lI1.matcher(lIII);
+        int II1I = -1;
+        int l11I = -1;
+        if (lIlI.find()) {
+            II1I = lIlI.start();
+            l11I = lIlI.end();
         }
-        return ll1.matcher(llII).replaceAll(".");
+        int I1l1 = 0;
+        while (I1l1 < lIII.length()) {
+            if (I1l1 == II1I) {
+                boolean I1I1 = (I1l1 > 0 && lIII.codePointBefore(I1l1) > 0x2E80) || IIII(lIII, l11I);
+                llII.append(I1I1 ? lIII.substring(I1l1, l11I) : ".");
+                I1l1 = l11I;
+                if (lIlI.find()) {
+                    II1I = lIlI.start();
+                    l11I = lIlI.end();
+                } else {
+                    II1I = -1;
+                }
+                continue;
+            }
+            int lI11 = lIII.codePointAt(I1l1);
+            int l1l1 = I1l1 + Character.charCount(lI11);
+            if (l1Il(lI11)) {
+                boolean I1I1 = (I1l1 > 0 && lIII.codePointBefore(I1l1) > 0x2E80) || IIII(lIII, l1l1);
+                llII.append(I1I1 ? lIII.substring(I1l1, l1l1) : ".");
+            } else {
+                llII.appendCodePoint(lI11);
+            }
+            I1l1 = l1l1;
+        }
+        return llII.toString();
+    }
+
+    private boolean IIII(String I1I1, int l11I) {
+        I1lI l1II = lllI;
+        if (l1II == null || l11I < 0 || l11I >= I1I1.length()) return false;
+        return l1II.llIl().matcher(I1I1.substring(l11I)).lookingAt();
     }
 
     private String lIl1(String lllI) {

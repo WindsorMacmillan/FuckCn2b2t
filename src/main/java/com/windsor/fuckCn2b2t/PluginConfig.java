@@ -37,8 +37,8 @@ public class PluginConfig {
     private boolean lolChatModeEnabled;
     private long lolChatTimeoutMillis;
     private boolean linkStrictTldEnabled;
+    private boolean linkAggressive;
     private Pattern urlPattern;
-    private Pattern domainPortPattern;
 
     private boolean spamDetectionEnabled;
     private int spamTimeWindowSeconds;
@@ -132,11 +132,10 @@ public class PluginConfig {
         lolChatModeEnabled = link.getBoolean("lol-chat-mode", true);
         lolChatTimeoutMillis = Math.max(0L, link.getLong("lol-chat-timeout-seconds", 10L)) * 1000L;
         linkStrictTldEnabled = link.getBoolean("strict-tld", true);
+        linkAggressive = link.getBoolean("aggressive", false);
         urlPattern = Pattern.compile(link.getString("pattern",
                 "(?i)(?:https?://|ftp://|www\\.)[a-zA-Z0-9\\-.]+\\.(?:[a-zA-Z]{2,}(?:/\\S*)?)|" +
                         "(?i)(?:[a-zA-Z0-9\\-]+\\.)+[a-zA-Z]{2,}(?:/\\S*)?"));
-        domainPortPattern = Pattern.compile(link.getString("domain-port-pattern",
-                "[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+\\s*[:：]\\s*\\d+"));
 
         ConfigurationSection spam = getSection(chatCheck, "spam-detection");
         spamDetectionEnabled = spam.getBoolean("enabled", true);
@@ -304,12 +303,12 @@ public class PluginConfig {
         return linkStrictTldEnabled;
     }
 
-    public Pattern getUrlPattern() {
-        return urlPattern;
+    public boolean isLinkAggressive() {
+        return linkAggressive;
     }
 
-    public Pattern getDomainPortPattern() {
-        return domainPortPattern;
+    public Pattern getUrlPattern() {
+        return urlPattern;
     }
 
     public boolean isSpamDetectionEnabled() {
